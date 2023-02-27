@@ -7,21 +7,24 @@ pub struct I2cDisplay <I>
 {
     address: u8,
     peripheral: I,
+    //ram: [[u8; 128]; 64],
 }
 
-const COMMAND: u8 = 0x00;
-const DATA: u8 = 0x40;
-const HORIZONTAL_ADDRESSING_MODE: u8 = 0x00;
-const VERTICAL_ADDRESSING_MODE: u8 = 0x01;
-const PAGE_ADDRESSING_MODE: u8 = 0x02;
+pub const COMMAND: u8 = 0x00;
+pub const DATA: u8 = 0x40;
+pub const HORIZONTAL_ADDRESSING_MODE: u8 = 0x00;
+pub const VERTICAL_ADDRESSING_MODE: u8 = 0x01;
+pub const PAGE_ADDRESSING_MODE: u8 = 0x02;
 
 impl<I> I2cDisplay<I>
     where I: i2c::Write + i2c::Read
 {
     pub fn new(addr: u8, i2c: I) -> I2cDisplay<I>{
+        //let x = [[0 as u8; 128]; 64];
         I2cDisplay {
             address: addr,
             peripheral: i2c,
+            //ram: x,
         }
     }
 
@@ -94,8 +97,8 @@ impl<I> I2cDisplay<I>
     }
 
     pub fn set_higher_column_start_address(&mut self, mut address: u8) {        // for page addressing mode
-        address = address.clamp(0x10, 0x1F);
-        let data = [COMMAND, (0x01 << 4) | address];
+        address = address.clamp(0x00, 0x0f);
+        let data = [COMMAND, (0x10) | address];
         self.peripheral.write(self.address, &data);
     }
 
@@ -208,8 +211,14 @@ impl<I> I2cDisplay<I>
 
     // User Created
     pub fn setup_page_addressing_mode(&mut self) {
-        self.set_memory_addressing_mode(0b10);
+        self.set_memory_addressing_mode(PAGE_ADDRESSING_MODE);
         self.set_page_start_address(0);
+        self.set_lower_column_start_address(0x00);
+        self.set_higher_column_start_address(0x00);
+    }
+
+    pub fn start_column_start_address(&mut self, mut column: u8) {
+        column = column.clamp(0, 127);
         self.set_lower_column_start_address(0x00);
         self.set_higher_column_start_address(0x00);
     }
@@ -219,9 +228,8 @@ impl<I> I2cDisplay<I>
         self.peripheral.write(self.address, &payload);
     }
 
-    pub fn write_bytes(&mut self, data: [u8]) {
-        let data = [0x40, 0x00 as u8, 0x00, 0x00, 0x00, 0x00];
-        self.peripheral.write(self.address, &data);
+    pub fn write_bytes(&mut self, data: &mut [u8]) {
+        self.peripheral.write(self.address, data);
     }
 
     pub fn setup(&mut self) {

@@ -9,6 +9,7 @@ use esp_println::println;
 use esp_backtrace as _;
 
 mod driver;
+use driver::DATA;
 
 #[xtensa_lx_rt::entry]
 fn main() -> ! {
@@ -47,28 +48,38 @@ fn main() -> ! {
     display.setup_page_addressing_mode();
 
     display.entire_display_on(true);
-    delay.delay_ms(2000 as u32);
+    delay.delay_ms(1000 as u32);
     display.entire_display_on(false);
+    delay.delay_ms(1000 as u32);
 
     let mut counter = 0;
     let mut page = 1;
 
-    let mut data: [u8; 100] = [0xff;100];
-    data[0] = 0x40;
-    display.write_bytes(&data);
+    while counter < 8 {
+        let mut data: [u8; 31] = [0x00;31];
+        data[0] = DATA;
+        display.write_bytes(&mut data);
+        display.write_bytes(&mut data);
+        display.write_bytes(&mut data);
+        display.write_bytes(&mut data);
+        display.write_bytes(&mut data);
+
+        display.set_page_start_address(page);
+        display.set_lower_column_start_address(0x00);
+        display.set_higher_column_start_address(0x00);
+        page = page + 1;
+
+        counter = counter + 1;
+        delay.delay_ms(250 as u32);
+    }
+
+
+    display.set_page_start_address(3);
+    display.set_lower_column_start_address(0xff);
+    display.set_higher_column_start_address(0xff);
+    display.write_byte(0xff);
 
     loop {
-        let mut data: [u8; 2] = [0x00;2];
-        data[0] = 0x40;
-        display.write_bytes(&data);
-        delay.delay_ms(100 as u8);
-        counter = counter + 1;
-        if counter > 128 {
-            counter = 0;
-            display.set_page_start_address(page);
-            display.set_lower_column_start_address(0x00);
-            display.set_higher_column_start_address(0x00);
-            page = page + 1;
-        }
+
     }
 }
